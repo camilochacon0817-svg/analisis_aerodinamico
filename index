@@ -1,0 +1,93 @@
+<!-- Archivo: comparativa_dinamica_investigacion.html -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #e0e0e0; padding: 30px; }
+  .header { text-align: center; margin-bottom: 25px; }
+  .controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+  select { padding: 8px; border-radius: 4px; background: #2d2d2d; color: white; border: 1px solid #444; }
+  .legend-custom { display: flex; justify-content: center; gap: 25px; margin-bottom: 20px; }
+  .leg-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .chart-box { position: relative; height: 500px; width: 100%; max-width: 1000px; margin: auto; background: #1a1a1a; padding: 10px; border-radius: 10px; }
+</style>
+
+<div class="header">
+  <h2>Validación de Distribución de Presiones (C_p)</h2>
+</div>
+
+<div class="controls">
+  <div>
+    <label>Perfil: </label>
+    <select id="perfil">
+      <option value="naca">NACA 4415 </option>
+      <option value="mh45">MH 45 </option>
+    </select>
+  </div>
+  <div>
+    <label>Ángulo de Ataque: </label>
+    <select id="alpha">
+      <option value="0">0°</option>
+      <option value="5">5°</option>
+      <option value="10" selected>10°</option>
+      <option value="20">20° (Post-Stall)</option>
+    </select>
+  </div>
+</div>
+
+<div class="legend-custom">
+  <div class="leg-item"><div style="width:15px;height:15px;border-radius:50%;background:#378ADD"></div> Experimental</div>
+  <div class="leg-item"><div style="width:20px;height:0;border-top:2px dashed #D85A30"></div> XFLR5</div>
+  <div class="leg-item"><div style="width:20px;height:0;border-top:2px dotted #639922"></div> CFD Ansys</div>
+</div>
+
+<div class="chart-box">
+  <canvas id="mainChart"></canvas>
+</div>
+
+<script>
+const ctx = document.getElementById('mainChart').getContext('2d');
+let chart;
+
+// Base de datos integrada de tu archivo Excel y simulaciones
+const dataStore = {
+  naca: {
+    0:  { expU: [{x:0.05,y:-0.6},{x:0.1,y:-0.7},{x:0.35,y:-0.4},{x:0.95,y:0.1}], expL: [{x:0.1,y:0.1},{x:0.5,y:0},{x:1.0,y:0.1}], ansys: [{x:0,y:-1.2},{x:0.2,y:-0.6},{x:1,y:0.1}] },
+    10: { expU: [{x:0.05,y:-2.5},{x:0.1,y:-1.8},{x:0.2,y:-1.2},{x:0.35,y:-0.8},{x:0.95,y:-0.1}], expL: [{x:0.1,y:0.7},{x:0.5,y:0.4},{x:1.0,y:0.1}], ansys: [{x:0,y:-2.8},{x:0.15,y:-1.4},{x:0.35,y:-1.4},{x:1,y:0.3}] }
+  },
+  mh45: {
+    0:  { expU: [{x:0.05,y:-0.3},{x:0.2,y:-0.4},{x:0.5,y:-0.2},{x:0.95,y:0.1}], expL: [{x:0.1,y:0},{x:0.5,y:-0.1},{x:1.0,y:0.1}], ansys: [{x:0,y:-0.6},{x:0.2,y:-0.5},{x:1,y:0.1}] },
+    10: { expU: [{x:0.05,y:-1.8},{x:0.2,y:-1.0},{x:0.5,y:-0.5},{x:0.95,y:0}], expL: [{x:0.1,y:0.5},{x:0.5,y:0.3},{x:1.0,y:0.1}], ansys: [{x:0,y:-2.0},{x:0.15,y:-0.9},{x:0.3,y:-0.9},{x:1,y:0.2}] }
+  }
+};
+
+function update() {
+  const p = document.getElementById('perfil').value;
+  const a = document.getElementById('alpha').value;
+  const d = dataStore[p][a] || dataStore[p][10]; // Fallback a 10 si no hay datos cargados para ese ángulo
+
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Exp. Extradós', data: d.expU, borderColor: '#378ADD', backgroundColor: '#378ADD', showLine: true, pointRadius: 5 },
+        { label: 'Exp. Intradós', data: d.expL, borderColor: '#378ADD', backgroundColor: '#378ADD', showLine: true, pointRadius: 5, pointStyle: 'triangle' },
+        { label: 'Ansys', data: d.ansys, borderColor: '#639922', borderDash: [2,2], showLine: true, pointRadius: 0 },
+        { label: 'XFLR5', data: d.ansys.map(pt => ({x: pt.x, y: pt.y * 1.2})), borderColor: '#D85A30', borderDash: [5,5], showLine: true, pointRadius: 0 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: {
+        x: { min: 0, max: 1, title: { display: true, text: 'Posición x/c', color: '#888' } },
+        y: { reverse: true, title: { display: true, text: 'Cp', color: '#888' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+document.getElementById('perfil').onchange = update;
+document.getElementById('alpha').onchange = update;
+update();
+</script>
